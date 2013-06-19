@@ -17,6 +17,8 @@ in addition to a number of links that were useful when developing my framework.
 
 ### Design
 
+***
+
 Let's get some basic requirements down first:
 
 * Tests should be easy to write
@@ -28,6 +30,8 @@ Let's get some basic requirements down first:
 ***
 
 ### Implementation
+
+***
 
 I chose to write my framework in Python. It's a great language for building tools no matter what your
 application is written in or what your developers know. Some of the reasons I love Python:
@@ -72,7 +76,7 @@ for each test and quit the browser when the test has completed. Even if the test
 
 The Firefox driver is great because it requires no external dependencies on any platform.
 The Firefox WebDriver binary is included in Python's Selenium module.
-If you want to use Chrome (`self.driver = webdriver.Chrome()`), you will need to have
+Chrome can be used with `self.driver = webdriver.Chrome()`, but you will need to have
 the [ChromeDriver binary](https://code.google.com/p/chromedriver/downloads/list) in your path.
 
 It's important to include the implicit wait configuration due to the nature of the web. Javascript can modify
@@ -420,7 +424,8 @@ you should create [sub-accounts](https://saucelabs.com/docs/subaccounts) and man
 Sauce Labs has a dashboard where you can view tests. If you want the dashboard to contain any meaningful data:
 
 * Set the `name` parameter in `desired_capabilities` in the setup. Unfortunately a setup has no good way of
-knowing what method called it. You do know the class and module (file) name, so fill them in.
+knowing what method called it. I like to use `'%s.%s.?' % (__module__, __class__)`.
+This would result in file_name.ClassName.?
 * Set the `build` parameter in `desired_capabilities`. Jenkins provides a
 [$BUILD_TAG parameter](https://wiki.jenkins-ci.org/display/JENKINS/Building+a+software+project#Buildingasoftwareproject-JenkinsSetEnvironmentVariables)
 that contains the job name and build number so you know which build the test originated from.
@@ -491,17 +496,18 @@ from other developers.
 
 #### Headless testing
 
-The PyVirtualDisplay module allows you to use Xvfb to create a virtual X display. This is useful for running tests on
-your CI server (without Sauce), or locally if you don't want a ton of browser windows taking over your display. See
-[this post](http://coreygoldberg.blogspot.com/2011/06/python-headless-selenium-webdriver.html) from Corey Goldberg
-for more details.
+The [`PyVirtualDisplay`](https://pypi.python.org/pypi/PyVirtualDisplay)
+module allows you to wrap your program in `Xvfb` (a virtual X display). This is useful for running tests on your
+CI server (without Sauce), or locally if you don't want a ton of browser windows taking over your display. See
+[this post](http://coreygoldberg.blogspot.com/2011/06/python-headless-selenium-webdriver.html)
+from Corey Goldberg for more details.
 
 #### Cookie injection
 
 Cookie injection is easy until you have to do it cross-browser. I highly recommend avoiding it altogether.
 In my case, I had a developer create a secret page for me that allowed me to add a cookie to prevent a
-first-use prompt from appearing. To add the cookie, I just have to navigate to the page
-(`self.get_path('/secret_page')`), and click the provided button.
+first-use prompt from appearing. To add the cookie, I just have to navigate to the page using
+`self.get_path('/secret_page')`, and click the provided button.
 
 #### Debugging
 
