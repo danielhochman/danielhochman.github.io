@@ -514,7 +514,7 @@ first-use prompt from appearing. To add the cookie, I just have to navigate to t
 (<code>self.get_path('/secret_page')</code>), and click the provided button.</p>
 <h4>Debugging</h4>
 <p>browser persistence
-pdb</p>
+The pdb plugin for nose can be used to drop into pdb </p>
 <h4>Documentation</h4>
 <p>Developers can undestand and fix tests more easily if they are documented.
 Non-developers should be aware of what is being tested and how.</p>
@@ -562,6 +562,8 @@ but have not had the time or need to implement for my use case.</p>
 - A page object model allows you to maintain selectors and page actions in one place rather than individual tests.</p>
 <p>Performance testing - Write a script to stand up a large number of remote webdrivers in the cloud
 and have the framework run the same test or a group of tests repeatedly against the application.</p>
+<p>Re-run failed tests - Tests fail because of environment wobble. It happens. It would be nice to re-run the tests that
+failed so that testing during build is more robust and less time consuming.</p>
 <h4>Help!</h4>
 <p>Ask a question on the <a href="https://groups.google.com/forum/#!forum/selenium-users">user group</a>,
 in the IRC channel (#selenium on Freenode),
