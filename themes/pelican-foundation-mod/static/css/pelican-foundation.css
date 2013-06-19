@@ -8,12 +8,18 @@ div.entry-content li { margin:10px 0px 10px 0px;padding:3px 0 3px 5px; }
 div.entry-content li.active { color: red; }
 
 
-
-pre, code, tt { font-family: monospace, 'Consolas', 'Deja Vu Sans Mono',
-'Bitstream Vera Sans Mono', 'Monaco', 'Courier New';
+pre, tt { 
+font-family: monospace, 'Consolas', 'Deja Vu Sans Mono','Bitstream Vera Sans Mono', 'Monaco', 'Courier New';
 font-size: 0.75em;
 }
-pre {
+code {
+font-family: monospace, 'Consolas', 'Deja Vu Sans Mono','Bitstream Vera Sans Mono', 'Monaco', 'Courier New';
+font-size: 0.95em;
+font-weight: normal;
+background-color: #f8f8ff;
+color: rgb(86, 86, 86);
+}
+div.highlight {
 line-height: 1.4; padding: 10px;
 -moz-border-radius-bottomleft: 10px;
 -webkit-border-bottom-left-radius: 10px;
@@ -23,4 +29,13 @@ line-height: 1.4; padding: 10px;
 -webkit-border-top-left-radius: 10px;
 -moz-border-radius-topright: 10px;
 -webkit-border-top-right-radius: 10px;
+margin-bottom: 1em;
+margin-top: 1em;
+border: solid 1px #d9d9d9;
 }
+
+p, ul {
+    line-height: 1.7;
+    font-size: 0.9em;
+}
+
