@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+Welcome! The most recent post is below. See the archives for additional posts.<br><br>
+    {% for article in articles_page.object_list %}
+        <article>
+            <h2 class="title">{{ article.title }} <small><a href="{{ SITEURL }}/{{ article.url }}" rel="bookmark" title="Permalink to {{ article.title }}">&para;</small></a>
+            </h2>
+            <div class="entry-content">{{ article.content }}</div>
+            <p><small>Written on <time datetime="{{ article.date.isoformat() }}" pubdate>{{ article.locale_date }}</time></small></p>
+        </article>
+    {% endfor %}
+
+    {% include "pagination.html" %}
+{% endblock content %}
