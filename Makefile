@@ -59,8 +59,8 @@ devserver:
 	$(BASEDIR)/develop_server.sh restart
 
 stopserver:
-	kill -9 `cat pelican.pid`
-	kill -9 `cat srv.pid`
+	kill `cat pelican.pid`
+	kill `cat srv.pid`
 	@echo 'Stopped Pelican and SimpleHTTPServer processes running in background.'
 
 publish:
