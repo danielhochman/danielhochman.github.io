@@ -148,7 +148,7 @@ def options():
             help='Push the branch to origin/{branch} after committing.'),
         op.make_option('-r', dest='remote', default='origin',
             help='The name of the remote to push to. [%default]'),
-        op.make_option('-b', dest='branch', default='gh-pages',
+        op.make_option('-b', dest='branch', default='master',
             help='Name of the branch to write to. [%default]'),
     ]
 
