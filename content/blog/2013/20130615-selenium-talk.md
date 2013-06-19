@@ -580,4 +580,5 @@ Ask a question on the [user group](https://groups.google.com/forum/#!forum/selen
 in the IRC channel (#selenium on Freenode),
 or attend a [Meetup](http://selenium.meetup.com/).
 
-All of the above resources were invaluable to me when learning about Selenium and debugging.
+All of the above resources were invaluable to me when learning about Selenium,
+and developing and debugging my framework.
