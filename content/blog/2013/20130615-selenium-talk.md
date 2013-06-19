@@ -505,7 +505,7 @@ first-use prompt from appearing. To add the cookie, I just have to navigate to t
 #### Debugging
 
 browser persistence
-pdb
+The pdb plugin for nose can be used to drop into pdb 
 
 #### Documentation
 
@@ -563,6 +563,9 @@ but have not had the time or need to implement for my use case.
 
 Performance testing - Write a script to stand up a large number of remote webdrivers in the cloud
 and have the framework run the same test or a group of tests repeatedly against the application.
+
+Re-run failed tests - Tests fail because of environment wobble. It happens. It would be nice to re-run the tests that
+failed so that testing during build is more robust and less time consuming.
 
 #### Help!
 
