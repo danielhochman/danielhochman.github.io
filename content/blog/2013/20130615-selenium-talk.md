@@ -1,6 +1,7 @@
 Title: Selenium: zero to test
 Date: 2013-06-20
 Category: Testing
+Status: draft
 Tags: selenium, testing
 Slug: selenium-zero-to-test
 Author: Daniel Hochman
