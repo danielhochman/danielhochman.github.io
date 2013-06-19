@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>/var/log/danielhochman</title><link href="http://danielhochman.github.io/" rel="alternate"></link><link href="http://danielhochman.github.io/feeds/all.atom.xml" rel="self"></link><id>http://danielhochman.github.io/</id><updated>2013-06-20T00:00:00-07:00</updated><entry><title>Selenium: zero to test</title><link href="http://danielhochman.github.io/selenium-zero-to-test.html" rel="alternate"></link><updated>2013-06-20T00:00:00-07:00</updated><author><name>Daniel Hochman</name></author><id>tag:danielhochman.github.io,2013-06-20:selenium-zero-to-test.html</id><summary type="html">&lt;p&gt;This post was written specifically for my
+&lt;a href="http://www.meetup.com/seleniumsanfrancisco/events/122248712/"&gt;talk&lt;/a&gt; at the
+&lt;a href="http://www.meetup.com/seleniumsanfrancisco/"&gt;San Francisco Selenium Meetup&lt;/a&gt;.
+It covers my implementation of a Selenium testing framework from the ground up. It includes a fair amount of my code,
+in addition to a number of links that were useful when developing my framework.&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h3&gt;Design&lt;/h3&gt;
+&lt;p&gt;Let's get some basic requirements down first:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Tests should be easy to write&lt;/li&gt;
+&lt;li&gt;Tests should be easy to debug&lt;/li&gt;
+&lt;li&gt;Tests shouldn't take forever (concurrency)&lt;/li&gt;
+&lt;li&gt;Tests should integrate well with developer workflow (all of the above, plus the ability to run locally)&lt;/li&gt;
+&lt;li&gt;Tests should integrate with existing tools (like Jenkins)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;h3&gt;Implementation&lt;/h3&gt;
+&lt;p&gt;I chose to write my framework in Python. It's a great language for building tools no matter what your
+application is written in or what your developers know. Some of the reasons I love Python:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Great libraries&lt;/li&gt;
+&lt;li&gt;Dynamic typing&lt;/li&gt;
+&lt;li&gt;Minimal boilerplate&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4&gt;A basic suite&lt;/h4&gt;
+&lt;p&gt;One of the libraries I have used for a number of testing projects is &lt;a href="https://nose.readthedocs.org/en/latest/"&gt;nose&lt;/a&gt;.
+It is the foundation of my testing framework and offers:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Fixtures (setup and teardown)&lt;/li&gt;
+&lt;li&gt;Test collection and discovery&lt;/li&gt;
+&lt;li&gt;Built-in multiprocessing support&lt;/li&gt;
+&lt;li&gt;xUnit report output&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;First, let's install a couple of dependencies. In general, you should use a
+&lt;a href="http://blog.fruiapps.com/2012/06/An-introductory-tutorial-to-python-virtualenv-and-virtualenvwrapper"&gt;virtualenv&lt;/a&gt;,
+but for the sake of brevity, I'm just going to include the following command:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="go"&gt;$ sudo pip install nose selenium&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Open your favorite editor, and let's create an abstract test case with fixtures we can use for all test cases:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;selenium&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;webdriver&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;SeleniumTestCase&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;object&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;setup&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;webdriver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Firefox&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;implicitly_wait&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;teardown&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;quit&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Fixtures are wrappers around tests that are run before and after the test. In the above example, we create a new browser
+for each test and quit the browser when the test has completed. Even if the test fails, the teardown will still run.&lt;/p&gt;
+&lt;p&gt;The Firefox driver is great because it requires no external dependencies on any platform.
+The Firefox WebDriver binary is included in Python's Selenium module.
+If you want to use Chrome (&lt;code&gt;self.driver = webdriver.Chrome()&lt;/code&gt;), you will need to have
+the &lt;a href="https://code.google.com/p/chromedriver/downloads/list"&gt;ChromeDriver binary&lt;/a&gt; in your path.&lt;/p&gt;
+&lt;p&gt;It's important to include the implicit wait configuration due to the nature of the web. Javascript can modify
+the DOM even after the page is loaded from the browser's perspective. Implicit waits ensure that Selenium will
+look for the element for a number of seconds after the DOM is loaded initially.&lt;/p&gt;
+&lt;p&gt;Let's write our first test:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;TestBasic&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;SeleniumTestCase&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_search&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;http://duckduckgo.com&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+        &lt;span class="n"&gt;search_box&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_name&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;q&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;search_box&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;send_keys&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;Selenium&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;search_box&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;submit&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+        &lt;span class="n"&gt;results&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;links&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+        &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Selenium&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;title&lt;/span&gt; 
+        &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Selenium&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;results&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;This test searches &lt;a href="http://duckduckgo.com"&gt;DuckDuckGo&lt;/a&gt; for 'Selenium' and checks that the browser title
+and displayed results contain the search term. Easy.&lt;/p&gt;
+&lt;p&gt;If you're wondering how I came up with the correct &lt;code&gt;name&lt;/code&gt; and &lt;code&gt;id&lt;/code&gt;, I prefer to use Chrome's built-in Developer Tools.
+Just right click anywhere on a page and select 'Inspect Element'. If you're wondering about methods like
+&lt;code&gt;find_element_by_id()&lt;/code&gt;, I highly recommend the
+&lt;a href="https://selenium-python.readthedocs.org/en/latest/"&gt;unofficial Selenium with Python&lt;/a&gt;
+documentation by Baiju Muthukadan. It is far better than the
+&lt;a href="http://selenium.googlecode.com/svn/trunk/docs/api/py/index.html"&gt;official API documentation&lt;/a&gt;. &lt;/p&gt;
+&lt;p&gt;Save the abstract test case and first test in a file called &lt;code&gt;test_selenium.py&lt;/code&gt; and run it by invoking &lt;code&gt;nosetests&lt;/code&gt; in
+the same directory
+(with the verbose flag so the name of the test is displayed as it is run):&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="go"&gt;$ ls&lt;/span&gt;
+&lt;span class="go"&gt;test_selenium.py&lt;/span&gt;
+&lt;span class="go"&gt;$ nosetests -v&lt;/span&gt;
+&lt;span class="go"&gt;test_selenium.TestBasic.test_search ... ok&lt;/span&gt;
+
+&lt;span class="go"&gt;----------------------------------------------------------------------&lt;/span&gt;
+&lt;span class="go"&gt;Ran 1 test in 5.122s&lt;/span&gt;
+
+&lt;span class="go"&gt;OK&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;One of my favorite features of nose is the ability to use tests generators. Using generators we can run the
+same test multiple times using different parameters, and have the results properly output.&lt;/p&gt;
+&lt;p&gt;Let's refactor our first test in a new class and include a few more test cases with different parameters.
+We can do this with just three additional lines of code:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;TestGenerator&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;SeleniumTestCase&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_search&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;search_term&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;Python&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Selenium&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;San Francisco&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Sauce Labs&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]:&lt;/span&gt;
+            &lt;span class="k"&gt;yield&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;verify_search&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;search_term&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;verify_search&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;search_term&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;http://duckduckgo.com&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+        &lt;span class="n"&gt;search_box&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_name&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;q&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;search_box&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;send_keys&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;search_term&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;search_box&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;submit&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+        &lt;span class="n"&gt;results&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;links&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+        &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;search_term&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;title&lt;/span&gt; 
+        &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;search_term&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;results&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Save the file and run again.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="go"&gt;$ nosetests -v&lt;/span&gt;
+&lt;span class="go"&gt;test_selenium.TestBasic.test_search ... ok&lt;/span&gt;
+&lt;span class="go"&gt;test_selenium.TestGenerator.test_search(&amp;#39;Python&amp;#39;,) ... ok&lt;/span&gt;
+&lt;span class="go"&gt;test_selenium.TestGenerator.test_search(&amp;#39;Selenium&amp;#39;,) ... ok&lt;/span&gt;
+&lt;span class="go"&gt;test_selenium.TestGenerator.test_search(&amp;#39;San Francisco&amp;#39;,) ... ok&lt;/span&gt;
+&lt;span class="go"&gt;test_selenium.TestGenerator.test_search(&amp;#39;Sauce Labs&amp;#39;,) ... ok&lt;/span&gt;
+
+&lt;span class="go"&gt;----------------------------------------------------------------------&lt;/span&gt;
+&lt;span class="go"&gt;Ran 5 tests in 57.678s&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The &lt;code&gt;yield&lt;/code&gt; keyword invokes the designated method with the given parameter(s) and the appropriate fixtures.
+One downside of using generators is that generated methods will not run in parallel when using multiprocessing.&lt;/p&gt;
+&lt;p&gt;Let's run again using multiple processes to see what happens:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="go"&gt;$ nosetests --processes=4 --process-timeout=60&lt;/span&gt;
+&lt;span class="go"&gt;.....&lt;/span&gt;
+&lt;span class="go"&gt;----------------------------------------------------------------------&lt;/span&gt;
+&lt;span class="go"&gt;Ran 5 tests in 44.530s&lt;/span&gt;
+
+&lt;span class="go"&gt;OK&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Note: it's important to include a high process timeout when running with multiple processes,
+which defaults to 10, due to the long running nature of Selenium tests.&lt;/p&gt;
+&lt;p&gt;You will notice that the tests seem to run in parallel at first, but the generated tests only run on one process.
+It's not a big deal when running a larger suite, as multiple tests and generators will run in parallel.
+Just be aware that when generating a large number of tests from a single generator, it could take a very long time
+even with multiprocessing enabled.&lt;/p&gt;
+&lt;h4&gt;Expanding the suite&lt;/h4&gt;
+&lt;p&gt;At this point, we have a minimum viable product.
+But there are a lot of additional features to add that make writing tests easier and improve integration with other
+tools.&lt;/p&gt;
+&lt;h5&gt;Configuration&lt;/h5&gt;
+&lt;p&gt;One of the most common cases where configuration helps is with URLs. If you want to run the suite against
+multiple endpoints (localhost, staging, production, etc), it is useful to keep the base netloc in a config
+file and have a method to create URLs from a path.&lt;/p&gt;
+&lt;p&gt;Let's add some features to our abstract test case:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;selenium&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;webdriver&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;simplejson&lt;/span&gt; &lt;span class="kn"&gt;as&lt;/span&gt; &lt;span class="nn"&gt;json&lt;/span&gt;
+&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;urlparse&lt;/span&gt;
+
+&lt;span class="n"&gt;_multiprocess_shared_&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;True&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;setup&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+    &lt;span class="n"&gt;config_json&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+&lt;span class="s"&gt;    {&lt;/span&gt;
+&lt;span class="s"&gt;        &amp;quot;endpoint&amp;quot;: &amp;quot;http://duckduckgo.com&amp;quot;,&lt;/span&gt;
+&lt;span class="s"&gt;        &amp;quot;timeout&amp;quot;: 10&lt;/span&gt;
+&lt;span class="s"&gt;    }&lt;/span&gt;
+&lt;span class="s"&gt;    &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+    &lt;span class="k"&gt;global&lt;/span&gt; &lt;span class="n"&gt;config&lt;/span&gt;
+    &lt;span class="n"&gt;config&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;json&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;loads&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;config_json&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;SeleniumTestCase&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;object&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;setup&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;webdriver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Firefox&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;implicitly_wait&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;timeout&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;teardown&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;quit&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;get_path&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;url&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;urlparse&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;urljoin&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;endpoint&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;path&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;url&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Note the use of a module level fixture for our setup. We don't need to create a new configuration dictionary
+for every single test. nose supports fixtures at the package, module, class, and test level.
+&lt;code&gt;_multiprocess_shared_&lt;/code&gt; allows multiple processes to share the same module fixture.&lt;/p&gt;
+&lt;p&gt;I chose JSON because it parses directly into a Python dictionary and it can be generated by
+something as simple as echoing text to a file.
+It's easy to see how we could get the JSON above from an external file.&lt;/p&gt;
+&lt;p&gt;In the example tests, replace &lt;code&gt;self.driver.get('http://duckduckgo.com')&lt;/code&gt; with &lt;code&gt;self.get_path('/')&lt;/code&gt;. The tests use the
+endpoint in the config in combination with the requested path. In this case we are just requesting the root path of the
+endpoint.&lt;/p&gt;
+&lt;h5&gt;Tailoring the abstract test case&lt;/h5&gt;
+&lt;p&gt;You may want to add methods specific to your application to ease things like logging in.&lt;/p&gt;
+&lt;p&gt;In this case, subclass SeleniumTestCase and add any useful methods:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;DuckDuckGoTestCase&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;SeleniumTestCase&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;search&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;search_term&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_path&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;/&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+        &lt;span class="n"&gt;search_box&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_name&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;q&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;search_box&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;send_keys&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;Selenium&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;search_box&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;submit&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+        &lt;span class="n"&gt;results&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;links&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;results&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Be sure to change the test classes to subclass the new app specific test case and leverage the new method:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;TestBasic&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;DuckDuckGoTestCase&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_search&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;results&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;search&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;Selenium&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+        &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Selenium&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;title&lt;/span&gt; 
+        &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Selenium&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;results&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;TestGenerator&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;DuckDuckGoTestCase&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_search&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;search_term&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;Python&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Selenium&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;San Francisco&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Sauce Labs&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]:&lt;/span&gt;
+            &lt;span class="k"&gt;yield&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;verify_search&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;search_term&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;verify_search&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;search_term&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;results&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;search&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;search_term&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+        &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;search_term&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;title&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s"&gt; was not expected&amp;quot;, looked for &amp;quot;&lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;&amp;#39;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;title&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;search_term&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="n"&gt;search_term&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;results&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h5&gt;Handling multiple windows&lt;/h5&gt;
+&lt;p&gt;Here's a method you may want to add to the abstract test case
+if your application has popups or multiple windows/tabs.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;time&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;find_window&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;title&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;start&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="k"&gt;while&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="n"&gt;start&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;=&lt;/span&gt; &lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;timeout&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]:&lt;/span&gt;
+        &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;window_handle&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;window_handles&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;switch_to_window&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;window_handle&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+            &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;title&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;title&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+                &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="bp"&gt;True&lt;/span&gt;
+        &lt;span class="n"&gt;time&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sleep&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.5&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="k"&gt;raise&lt;/span&gt; &lt;span class="ne"&gt;Exception&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;Could not find window &amp;#39;&lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="n"&gt;title&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h5&gt;Complex input actions&lt;/h5&gt;
+&lt;p&gt;&lt;a href="http://selenium-python.readthedocs.org/en/latest/api.html#module-selenium.webdriver.common.action_chains"&gt;Action chains&lt;/a&gt;
+allow you to do complex input manipulation.&lt;/p&gt;
+&lt;p&gt;Here's an example of a hover or mouseover method for the abstract test case:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;selenium.webdriver.common.action_chains&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;ActionChains&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;hover&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;element&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;ActionChains&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;move_to_element&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;element&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;perform&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h5&gt;API Bindings&lt;/h5&gt;
+&lt;p&gt;Applications more often than not rely heavily on data, therefore tests will too.&lt;/p&gt;
+&lt;p&gt;There are two good ways to handle test data:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;For data that won't be modified, write a script to create the necessary test data and leave it in the database.&lt;/li&gt;
+&lt;li&gt;For data that may or may not be modified, create the necessary test data, test against it, and delete it.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The best way to handle either case is to write simple API bindings in a Python module
+(using &lt;a href="http://docs.python-requests.org/en/latest/"&gt;requests&lt;/a&gt; makes it easy).
+Then you can import the module, call .create() in the setup() and .delete() in the teardown().&lt;/p&gt;
+&lt;h5&gt;Reporting&lt;/h5&gt;
+&lt;p&gt;xUnit is a standard test report format in XML, supported by nearly every test framework in every language. nose has
+a built-in xUnit output plugin. Unfortunately, it &lt;a href="https://github.com/nose-devs/nose/issues/2"&gt;does not play nice&lt;/a&gt;
+with multiprocessing. In fact, many plugins can break or behave unexpectedly when multiprocessing is enabled.
+&lt;a href="https://github.com/nose-devs/nose2"&gt;nose2&lt;/a&gt; is supposed to remedy these issues. I evaluated it recently and it is not
+quite ready for primetime.&lt;/p&gt;
+&lt;p&gt;Rosen Diankov, developed a patch to fix the issue. You can find his plugins
+&lt;a href="https://github.com/rdiankov/openrave/tree/master/test/noseplugins"&gt;embedded in one of his project repositories&lt;/a&gt;
+on GitHub. The patch also brings another desirable change to xUnit reports, output capture for all tests. By default,
+only failing test output is captured in the result file.&lt;/p&gt;
+&lt;h5&gt;Test runner&lt;/h5&gt;
+&lt;p&gt;Passing arguments to nosetests is no fun. There are also additional features (like headless testing), that require
+some setup before invoking nose.&lt;/p&gt;
+&lt;p&gt;A simple test runner looks like this:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;nose&lt;/span&gt;
+
+&lt;span class="n"&gt;nose&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;core&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TestProgram&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;my_arguments&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;plugins&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;my_plugins&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h5&gt;Jenkins integration&lt;/h5&gt;
+&lt;p&gt;&lt;a href="http://jenkins-ci.org/"&gt;Jenkins&lt;/a&gt; is a great tool for automating the deployment process.
+Post-commit &lt;a href="http://git-scm.com/book/ch7-3.html"&gt;git hooks&lt;/a&gt; can trigger a build in Jenkins
+every time a developer pushes code. Tests should run as part the build.&lt;/p&gt;
+&lt;p&gt;Jenkins also supports test reporting. A nice graph shows pass, fail, and test volume history. Each test is visible
+from Jenkins built-in test browser, and I was able to create a link to the job in Sauce Labs using the ID. Whenever
+a test fails, the video is one-click away.&lt;/p&gt;
+&lt;h5&gt;Sauce Labs&lt;/h5&gt;
+&lt;p&gt;Sauce Labs allows you to run your tests in the cloud on
+&lt;a href="https://saucelabs.com/docs/platforms"&gt;over 150 platform/browser combinations&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;To use Sauce Labs, we just need to modify our setup fixture to create a remote webdriver instead of the Firefox
+one we were using previously. Let's modify our module and test level fixtures:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="o"&gt;...&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;setup&lt;/span&gt;&lt;span class="p"&gt;():&lt;/span&gt;
+    &lt;span class="n"&gt;config_json&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+&lt;span class="s"&gt;    {&lt;/span&gt;
+&lt;span class="s"&gt;        &amp;quot;endpoint&amp;quot;: &amp;quot;http://duckduckgo.com&amp;quot;,&lt;/span&gt;
+&lt;span class="s"&gt;        &amp;quot;timeout&amp;quot;: 10,&lt;/span&gt;
+&lt;span class="s"&gt;        &amp;quot;use_sauce&amp;quot;: true,&lt;/span&gt;
+&lt;span class="s"&gt;        &amp;quot;sauce_username&amp;quot;: &amp;quot;my_username&amp;quot;,&lt;/span&gt;
+&lt;span class="s"&gt;        &amp;quot;sauce_access_key&amp;quot;: &amp;quot;accesske-y012-3456-789a-bcdef0123456&amp;quot;,&lt;/span&gt;
+&lt;span class="s"&gt;        &amp;quot;sauce_browser&amp;quot;: &amp;quot;INTERNETEXPLORER&amp;quot;&lt;/span&gt;
+&lt;span class="s"&gt;    }&lt;/span&gt;
+&lt;span class="s"&gt;    &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+    &lt;span class="k"&gt;global&lt;/span&gt; &lt;span class="n"&gt;config&lt;/span&gt;
+    &lt;span class="n"&gt;config&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;json&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;loads&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;config_json&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;SeleniumTestCase&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;object&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;setup&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;use_sauce&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]:&lt;/span&gt;
+            &lt;span class="n"&gt;desired_capabilities&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;getattr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;webdriver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;DesiredCapabilities&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;sauce_browser&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+            &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;webdriver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Remote&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+                &lt;span class="n"&gt;desired_capabilities&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;desired_capabilities&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+                &lt;span class="n"&gt;command_executor&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;http://&lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s"&gt;:&lt;/span&gt;&lt;span class="si"&gt;%s&lt;/span&gt;&lt;span class="s"&gt;@ondemand.saucelabs.com:80/wd/hub&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;%&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;
+                    &lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;sauce_username&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;sauce_access_key&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+                &lt;span class="p"&gt;)&lt;/span&gt;
+            &lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="k"&gt;else&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;webdriver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Firefox&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;implicitly_wait&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;timeout&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+
+&lt;span class="o"&gt;...&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h6&gt;Sauce Connect&lt;/h6&gt;
+&lt;p&gt;You can even test local, non-internet facing, environments using a
+&lt;a href="https://saucelabs.com/docs/connect"&gt;Sauce Connect tunnel&lt;/a&gt;. They are incredibly easy to use, just execute the .jar
+with your credentials. Some things to watch out for when using Sauce Connect:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Tunnels get stale, and should be refreshed daily using a scheduled job. They can also die unpredictably.
+See &lt;a href="http://support.saucelabs.com/entries/21068387-Keeping-Sauce-Connect-fresh"&gt;Keeping Sauce Connect Fresh&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;All traffic during Sauce tests go through the tunnel, not just traffic to the local environment. This can slow
+things down quite a bit.&lt;/li&gt;
+&lt;li&gt;Only one tunnel can be active per account. If you need to tunnel to multiple environments,
+you should create &lt;a href="https://saucelabs.com/docs/subaccounts"&gt;sub-accounts&lt;/a&gt; and manage credentials accordingly.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h6&gt;Sauce API&lt;/h6&gt;
+&lt;p&gt;Sauce Labs has a dashboard where you can view tests. If you want the dashboard to contain any meaningful data:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Set the &lt;code&gt;name&lt;/code&gt; parameter in &lt;code&gt;desired_capabilities&lt;/code&gt; in the setup. Unfortunately a setup has no good way of
+knowing what method called it. You do know the class and module (file) name, so fill them in.&lt;/li&gt;
+&lt;li&gt;Set the &lt;code&gt;build&lt;/code&gt; parameter in &lt;code&gt;desired_capabilities&lt;/code&gt;. Jenkins provides a
+&lt;a href="https://wiki.jenkins-ci.org/display/JENKINS/Building+a+software+project#Buildingasoftwareproject-JenkinsSetEnvironmentVariables"&gt;$BUILD_TAG parameter&lt;/a&gt;
+that contains the job name and build number so you know which build the test originated from.&lt;/li&gt;
+&lt;li&gt;Use Sauce Labs' API to &lt;a href="https://saucelabs.com/docs/rest#resources/update"&gt;update the job&lt;/a&gt;
+after the test has completed. I personally parse the xUnit report and complete the test name
+and update the pass/fail status.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4&gt;Selectors&lt;/h4&gt;
+&lt;p&gt;The most difficult element of testing is writing robust selectors. Brittle selectors can break whenever slight
+changes occur in the DOM. Selectors should be:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Unique&lt;/li&gt;
+&lt;li&gt;Descriptive&lt;/li&gt;
+&lt;li&gt;Short&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;CSS selectors are preferred over XPath. They are faster (especially in IE) and more readable. Here's a
+&lt;a href="http://sauceio.com/index.php/2011/05/why-css-locators-are-the-way-to-go-vs-xpath/"&gt;blog post and video&lt;/a&gt; from
+Santi of Sauce Labs about the advantages of CSS selectors. Not covered in Santi's post is the javascript-xpath
+library, which should yield significantly better XPath performance.
+This tip came from Dr. Wenhua Wang. You should be able to find his presentation on javascript-xpath at his
+&lt;a href="http://www.meetup.com/seleniumsanfrancisco/events/101087592/"&gt;Meetup event page&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Here's a quick guide to targeting elements using &lt;code&gt;find_element_by_css_selector()&lt;/code&gt;:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Target&lt;/th&gt;
+&lt;th align="left"&gt;Selector example&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Tag&lt;/td&gt;
+&lt;td align="left"&gt;div&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Direct child&lt;/td&gt;
+&lt;td align="left"&gt;table &amp;gt; tr&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Child or subchild&lt;/td&gt;
+&lt;td align="left"&gt;table td&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Id&lt;/td&gt;
+&lt;td align="left"&gt;#my_id&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Class&lt;/td&gt;
+&lt;td align="left"&gt;.myclass&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Attribute&lt;/td&gt;
+&lt;td align="left"&gt;[name=my_name]&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Chained Locators&lt;/td&gt;
+&lt;td align="left"&gt;a.my_class#my_id[name=my_name]&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;And here's a &lt;a href="http://ejohn.org/blog/xpath-css-selectors/"&gt;comparison of CSS and XPath syntax&lt;/a&gt; from John Resig.&lt;/p&gt;
+&lt;h5&gt;Retrofitting selectors&lt;/h5&gt;
+&lt;p&gt;Ideally, every element in the DOM will have a selector that meets the criteria stated above. Unfortunately, that
+is almost never the case. Retrofitting selectors can be a problem, particularly if functionality of the site depends
+on id or name attributes that cannot be modified.&lt;/p&gt;
+&lt;p&gt;Fortunately, HTML5 allows for &lt;a href="http://html5doctor.com/html5-custom-data-attributes/"&gt;custom data attributes&lt;/a&gt;.
+These are attributes beginning with 'data-' that are valid HTML and can be leveraged as locators. For example,
+you might give your otherwise unlocatable element a 'data-selenium' attribute:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="c"&gt;&amp;lt;!--Before--&amp;gt;&lt;/span&gt;
+&lt;span class="nt"&gt;&amp;lt;a&lt;/span&gt; &lt;span class="na"&gt;href=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;/dynamic_path&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;class=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;generic&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;id=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;random_secure&amp;quot;&lt;/span&gt;&lt;span class="nt"&gt;&amp;gt;&lt;/span&gt;Marketing&amp;#39;s Text&lt;span class="nt"&gt;&amp;lt;/a&amp;gt;&lt;/span&gt;
+
+&lt;span class="c"&gt;&amp;lt;!--After--&amp;gt;&lt;/span&gt;
+&lt;span class="nt"&gt;&amp;lt;a&lt;/span&gt; &lt;span class="na"&gt;href=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;/dynamic_path&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;class=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;generic&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;id=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;random_secure&amp;quot;&lt;/span&gt; &lt;span class="na"&gt;data-selenium=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;the_link&amp;quot;&lt;/span&gt;&lt;span class="nt"&gt;&amp;gt;&lt;/span&gt;Marketing&amp;#39;s Text&lt;span class="nt"&gt;&amp;lt;/a&amp;gt;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Now we can locate the element using the following CSS locator: &lt;code&gt;[data-selenium=the_link]&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;I have experimented with a script that automatically adds a random 6 hex digit data tag to certain elements in
+all HTML files passed to it.
+The first iteration parsed the HTML using Python's lxml module and added the tags, but I found that it changed the HTML
+in ways I did not expect it to. The second iteration just used regular expressions, but in general that's a
+&lt;a href="http://stackoverflow.com/questions/1732348/regex-match-open-tags-except-xhtml-self-contained-tags"&gt;bad idea&lt;/a&gt;.
+The other issue is that it cannot tag elements that are dynamically generated by server-side code.&lt;/p&gt;
+&lt;p&gt;A key part of testing is having a testable application. It is important to have a strategy for tagging elements during
+development so that they can be located easily and elegantly. Try to document a strategy and get buy-in
+from other developers.   &lt;/p&gt;
+&lt;h4&gt;Headless testing&lt;/h4&gt;
+&lt;p&gt;The PyVirtualDisplay module allows you to use Xvfb to create a virtual X display. This is useful for running tests on
+your CI server (without Sauce), or locally if you don't want a ton of browser windows taking over your display. See
+&lt;a href="http://coreygoldberg.blogspot.com/2011/06/python-headless-selenium-webdriver.html"&gt;this post&lt;/a&gt; from Corey Goldberg
+for more details.&lt;/p&gt;
+&lt;h4&gt;Cookie injection&lt;/h4&gt;
+&lt;p&gt;Cookie injection is easy until you have to do it cross-browser. I highly recommend avoiding it altogether.
+In my case, I had a developer create a secret page for me that allowed me to add a cookie to prevent a
+first-use prompt from appearing. To add the cookie, I just have to navigate to the page
+(&lt;code&gt;self.get_path('/secret_page')&lt;/code&gt;), and click the provided button.&lt;/p&gt;
+&lt;h4&gt;Debugging&lt;/h4&gt;
+&lt;p&gt;browser persistence
+pdb&lt;/p&gt;
+&lt;h4&gt;Documentation&lt;/h4&gt;
+&lt;p&gt;Developers can undestand and fix tests more easily if they are documented.
+Non-developers should be aware of what is being tested and how.&lt;/p&gt;
+&lt;p&gt;Here's an example of a documented test:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;uuid&lt;/span&gt;
+
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_user_creation&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="sd"&gt;&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+&lt;span class="sd"&gt;    Author: Mr. Developer&lt;/span&gt;
+&lt;span class="sd"&gt;    Description: Create a user&lt;/span&gt;
+&lt;span class="sd"&gt;    &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+
+    &lt;span class="c"&gt;# step: Get user creation page&lt;/span&gt;
+    &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_path&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;/create_user&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="c"&gt;# step: Fill in username with a random UUID&lt;/span&gt;
+    &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;username&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;send_keys&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;uuid&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;uuid4&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt;
+
+    &lt;span class="c"&gt;# step: Fill in password&lt;/span&gt;
+    &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;password&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;send_keys&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;letmein&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="c"&gt;# step: Click create user button&lt;/span&gt;
+    &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;create_user_btn&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;click&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+    &lt;span class="c"&gt;# assert: Success message is displayed&lt;/span&gt;
+    &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;Success&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;status_message&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Now, let's say every single test is documented using this same format. It is relatively easy to write a parser
+using &lt;a href="http://docs.python.org/2/library/tokenize.html"&gt;tokenize&lt;/a&gt; that can generate a CSV spreadsheet
+documenting the entire test suite. No more spreadsheet rot.
+Conversely, you could also generate code stubs from a spreadsheet that non-developers use to request new tests.&lt;/p&gt;
+&lt;p&gt;Note: by default, the first line of a method's docstring are used to name the tests in verbose mode. The
+&lt;a href="https://pypi.python.org/pypi/nose-ignore-docstring"&gt;ignore-docstring&lt;/a&gt; plugin allows you to override
+this behavior.&lt;/p&gt;
+&lt;h4&gt;Coverage&lt;/h4&gt;
+&lt;p&gt;There is always a question of how much to test on the front-end. Despite the power and flexibility of Selenium,
+I think it's important to stay as close to the metal as possible. If Selenium tests are written to provide significant
+coverage, the resulting suite will be brittle. Unit testing should be the primary source of coverage. &lt;/p&gt;
+&lt;h4&gt;Other potential features&lt;/h4&gt;
+&lt;p&gt;These are features I have considered and think are valuable,
+but have not had the time or need to implement for my use case.&lt;/p&gt;
+&lt;p&gt;&lt;a href="http://pragprog.com/magazines/2010-08/page-objects-in-python"&gt;Page Object Model&lt;/a&gt;
+- A page object model allows you to maintain selectors and page actions in one place rather than individual tests.&lt;/p&gt;
+&lt;p&gt;Performance testing - Write a script to stand up a large number of remote webdrivers in the cloud
+and have the framework run the same test or a group of tests repeatedly against the application.&lt;/p&gt;
+&lt;h4&gt;Help!&lt;/h4&gt;
+&lt;p&gt;Ask a question on the &lt;a href="https://groups.google.com/forum/#!forum/selenium-users"&gt;user group&lt;/a&gt;,
+in the IRC channel (#selenium on Freenode),
+or attend a &lt;a href="http://selenium.meetup.com/"&gt;Meetup&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;All of the above resources were invaluable to me when learning about Selenium and debugging.&lt;/p&gt;</summary><category term="selenium"></category><category term="testing"></category></entry></feed>

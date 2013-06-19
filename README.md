@@ -1,2 +1,0 @@
-danielhochman.github.io
-=======================
