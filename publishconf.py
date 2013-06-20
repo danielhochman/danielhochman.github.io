@@ -13,6 +13,8 @@ from pelicanconf import *
 SITEURL = 'http://danielhochman.github.io'
 RELATIVE_URLS = False
 
+ARTICLE_URL = '{slug}'
+
 FEED_ALL_ATOM = 'feeds/all.atom.xml'
 CATEGORY_FEED_ATOM = 'feeds/%s.atom.xml'
 
