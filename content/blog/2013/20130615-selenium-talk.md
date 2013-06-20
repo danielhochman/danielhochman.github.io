@@ -10,14 +10,16 @@ Summary: This post covers the implementation of a Selenium framework from the gr
 This post was written specifically for my
 [talk](http://www.meetup.com/seleniumsanfrancisco/events/122248712/) at the
 [San Francisco Selenium Meetup](http://www.meetup.com/seleniumsanfrancisco/).
-It covers my implementation of a Selenium testing framework from the ground up. It includes a fair amount of my code,
-in addition to a number of links that were useful when developing my framework.
+It covers my implementation of a Selenium testing framework from the ground up. It includes example code,
+in addition to a number of links that were useful when developing my framework. There is also a companion
+GitHub repository named [basic_selenium_framework](https://github.com/danielhochman/basic_selenium_framework). 
 
 ***
 
 ### Design
 
-Let's get some basic requirements down first:
+When you're building a framework, it's important to think about how it's going to be used and who is going to be
+using it. Here were my basic requirements:
 
 * Tests should be easy to write
 * Tests should be easy to debug
@@ -48,7 +50,7 @@ It is the foundation of my testing framework and offers:
 
 First, let's install a couple of dependencies. In general, you should use a
 [virtualenv](http://blog.fruiapps.com/2012/06/An-introductory-tutorial-to-python-virtualenv-and-virtualenvwrapper),
-but for the sake of brevity, I'm just going to include the following command:
+but you could also install the packages system-wide.
 
     :::shell-session
     $ sudo pip install nose selenium
@@ -160,31 +162,6 @@ Save the file and run again.
     Ran 5 tests in 57.678s
 
 The `yield` keyword invokes the designated method with the given parameter(s) and the appropriate fixtures.
-One downside of using generators is that generated methods will not run in parallel when using multiprocessing.
-
-Let's run again using multiple processes to see what happens:
-
-    :::shell-session
-    $ nosetests --processes=4 --process-timeout=60
-    .....
-    ----------------------------------------------------------------------
-    Ran 5 tests in 44.530s
-    
-    OK
-
-Note: it's important to include a high process timeout when running with multiple processes,
-which defaults to 10, due to the long running nature of Selenium tests.
-
-You will notice that the tests seem to run in parallel at first, but the generated tests only run on one process.
-It's not a big deal when running a larger suite, as multiple tests and generators will run in parallel.
-Just be aware that when generating a large number of tests from a single generator, it could take a very long time
-even with multiprocessing enabled.
-
-#### Expanding the suite
-
-At this point, we have a minimum viable product.
-But there are a lot of additional features to add that make writing tests easier and improve integration with other
-tools.
 
 ##### Configuration
 
@@ -236,7 +213,16 @@ In the example tests, replace `self.driver.get('http://duckduckgo.com')` with `s
 endpoint in the config in combination with the requested path. In this case we are just requesting the root path of the
 endpoint.
 
-##### Tailoring the abstract test case
+***
+
+### Expanding the suite
+
+At this point, we have a minimum viable product.
+Next we will look at additional features that testing easier and improve integration with other tools.
+
+***
+
+### Tailoring the abstract test case
 
 You may want to add methods specific to your application to ease things like logging in.
 
@@ -249,7 +235,7 @@ In this case, subclass SeleniumTestCase and add any useful methods:
             self.get_path('/')
             
             search_box = self.driver.find_element_by_name('q')
-            search_box.send_keys('Selenium')
+            search_box.send_keys(search_term)
             search_box.submit()
             
             results = self.driver.find_element_by_id('links')
@@ -276,90 +262,45 @@ Be sure to change the test classes to subclass the new app specific test case an
         def verify_search(self, search_term):
             results = self.search(search_term)
             
-            assert search_term in self.driver.title, '"%s was not expected", looked for "%s"' % (self.driver.title, search_term)
+            assert search_term in self.driver.title
             assert search_term in results.text
 
-##### Handling multiple windows
+***
 
-Here's a method you may want to add to the abstract test case
-if your application has popups or multiple windows/tabs.
-
-    :::python
-    import time
-    
-    def find_window(self, title):
-        start = time.time()
-        while (time.time() - start) <= config['timeout']:
-            for window_handle in self.driver.window_handles:
-                self.driver.switch_to_window(window_handle)
-                if self.driver.title == title:
-                    return True
-            time.sleep(0.5)
-        
-        raise Exception("Could not find window '%s'" % title)
-
-##### Complex input actions
-
-[Action chains](http://selenium-python.readthedocs.org/en/latest/api.html#module-selenium.webdriver.common.action_chains)
-allow you to do complex input manipulation.
-
-Here's an example of a hover or mouseover method for the abstract test case:
-
-    :::python
-    from selenium.webdriver.common.action_chains import ActionChains
-    
-    def hover(self, element):
-        ActionChains(self.driver).move_to_element(element).perform()
-
-##### API Bindings
-
-Applications more often than not rely heavily on data, therefore tests will too.
-
-There are two good ways to handle test data:
-
-* For data that won't be modified, write a script to create the necessary test data and leave it in the database.
-* For data that may or may not be modified, create the necessary test data, test against it, and delete it.
-
-The best way to handle either case is to write simple API bindings in a Python module
-(using [requests](http://docs.python-requests.org/en/latest/) makes it easy).
-Then you can import the module, call .create() in the setup() and .delete() in the teardown().
-
-##### Reporting
-
-xUnit is a standard test report format in XML, supported by nearly every test framework in every language. nose has
-a built-in xUnit output plugin. Unfortunately, it [does not play nice](https://github.com/nose-devs/nose/issues/2)
-with multiprocessing. In fact, many plugins can break or behave unexpectedly when multiprocessing is enabled.
-[nose2](https://github.com/nose-devs/nose2) is supposed to remedy these issues. I evaluated it recently and it is not
-quite ready for primetime.
-
-Rosen Diankov, developed a patch to fix the issue. You can find his plugins
-[embedded in one of his project repositories](https://github.com/rdiankov/openrave/tree/master/test/noseplugins)
-on GitHub. The patch also brings another desirable change to xUnit reports, output capture for all tests. By default,
-only failing test output is captured in the result file.
-
-##### Test runner
-
-Passing arguments to nosetests is no fun. There are also additional features (like headless testing), that require
-some setup before invoking nose.
-
-A simple test runner looks like this:
-
-    :::python
-    import nose
-    
-    nose.core.TestProgram(argv=my_arguments, plugins=my_plugins)
-
-##### Jenkins integration
+### Jenkins integration
 
 [Jenkins](http://jenkins-ci.org/) is a great tool for automating the deployment process.
 Post-commit [git hooks](http://git-scm.com/book/ch7-3.html) can trigger a build in Jenkins
 every time a developer pushes code. Tests should run as part the build.
 
-Jenkins also supports test reporting. A nice graph shows pass, fail, and test volume history. Each test is visible
-from Jenkins built-in test browser, and I was able to create a link to the job in Sauce Labs using the ID. Whenever
-a test fails, the video is one-click away.
+Jenkins also supports test reporting on the front-end from an xUnit test report. A nice graph shows pass, fail,
+and test volume history. Each test is visible from Jenkins built-in test browser.
 
-##### Sauce Labs
+nose has a built-in xUnit output plugin.
+Unfortunately, it [does not play nice](https://github.com/nose-devs/nose/issues/2)
+with multiprocessing. In fact, many plugins can break or behave unexpectedly when multiprocessing is enabled.
+[nose2](https://github.com/nose-devs/nose2) is supposed to remedy these issues. I evaluated it recently and it is not
+quite ready for primetime.
+
+Rosen Diankov developed a set of patched plugins to fix the issue and integrate better with Jenkins.
+You can find his plugins
+[embedded in one of his project repositories](https://github.com/rdiankov/openrave/tree/master/test/noseplugins)
+on GitHub. The patches also bring another desirable change to xUnit reports, output capture for all tests. By default,
+only failing test output is captured in the result file. In addition, it also manages to allow generated tests to run
+in parallel, which is not possible with the built-in `multiprocessing` plugin.
+
+***
+
+### Test runner
+
+Additional features, like headless testing and use of Rosen Diankov's custom plugins require
+some setup before invoking nose. A test runner handles the setup. See
+[run_tests.py](https://github.com/danielhochman/basic_selenium_framework/blob/master/basic_selenium_framework/run_tests.py)
+in the repo. If you want to use the additional features, you will need to use the test runner.
+
+***
+
+### Sauce Labs
 
 Sauce Labs allows you to run your tests in the cloud on
 [over 150 platform/browser combinations](https://saucelabs.com/docs/platforms).
@@ -402,17 +343,19 @@ one we were using previously. Let's modify our module and test level fixtures:
     
     ...
 
-###### Cross-browser testing
+##### Cross-browser testing
 
 There are some advanced ways to do cross-browser testing, using a custom nose plugin and method decorators, but it's
 more trouble than it's worth. It's easier to just run the suite multiple times with a different configuration file. In
 Jenkins, use multiple jobs with different configuration files to make it easier to track test results. This way you can
 also fail a build on Firefox test failures, but let the build continue even if tests fail on Internet Explorer.
-
 Personally, I have had a lot of trouble getting tests to be 100% stable on anything but the browser they were written
 for once you start writing tests that interact with a lot of JavaScript and navigate between multiple pages.
 
-###### Sauce Connect
+Look at [Selenium's own Jenkins instance](http://ci.seleniumhq.org:8080/) to understand how browsers may
+behave differently.
+
+##### Sauce Connect
 You can even test against local, non-internet facing, environments using a
 [Sauce Connect tunnel](https://saucelabs.com/docs/connect). They are incredibly easy to use, just execute the .jar
 with your credentials. Some things to watch out for when using Sauce Connect:
@@ -424,22 +367,40 @@ things down quite a bit.
 * Only one tunnel can be active per account. If you need to tunnel to multiple environments,
 you should create [sub-accounts](https://saucelabs.com/docs/subaccounts) and manage credentials accordingly.
 
-###### Sauce API
+##### Sauce API
 
 Sauce Labs has a dashboard where you can view tests. If you want the dashboard to contain any meaningful data:
 
 * Set the `name` parameter in `desired_capabilities` in the setup. Unfortunately a setup has no good way of
-knowing what method called it. I like to use `'%s.%s.?' % (__module__, __class__)`.
+knowing what method called it. I like to use `'%s.%s.?' % (__module__, __class__.__name__)`.
 This would result in file_name.ClassName.?
 * Set the `build` parameter in `desired_capabilities`. Jenkins provides a
 [$BUILD_TAG parameter](https://wiki.jenkins-ci.org/display/JENKINS/Building+a+software+project#Buildingasoftwareproject-JenkinsSetEnvironmentVariables)
 that contains the job name and build number so you know which build the test originated from.
 * Use Sauce Labs' API to [update the job](https://saucelabs.com/docs/rest#resources/update)
-after the test has completed. I personally parse the xUnit report and complete the test name
+after the test has completed. I parse the xUnit report and use the API to complete the test name
 and update the pass/fail status.
+See [job_update_sauce.py](https://github.com/danielhochman/basic_selenium_framework/blob/master/basic_selenium_framework/job_update_sauce.py).
 
+***
 
-#### Selectors
+### API Bindings
+
+Applications more often than not rely heavily on data, therefore tests will too.
+
+There are two good ways to handle test data:
+
+* For data that won't be modified, write a script to create the necessary test data and leave it in the database.
+* For data that may or may not be modified, create the necessary test data, test against it, and delete it.
+
+The best way to handle either case is to write simple API bindings in a Python module
+(using [requests](http://docs.python-requests.org/en/latest/) makes it easy).
+Then you can import the module in a script or call a `create()` in the `setup()` and a `delete()` in the `teardown()`
+of a test.
+
+***
+
+### Selectors
 
 The most difficult element of testing is writing robust selectors. Brittle selectors can break whenever slight
 changes occur in the DOM. Selectors should be:
@@ -452,8 +413,8 @@ CSS selectors are preferred over XPath. They are faster (especially in IE) and m
 [blog post and video](http://sauceio.com/index.php/2011/05/why-css-locators-are-the-way-to-go-vs-xpath/) from
 Santi of Sauce Labs about the advantages of CSS selectors. Not covered in Santi's post is the javascript-xpath
 library, which should yield significantly better XPath performance.
-This tip came from Dr. Wenhua Wang. You should be able to find his presentation on javascript-xpath at his
-[Meetup event page](http://www.meetup.com/seleniumsanfrancisco/events/101087592/).
+This tip came from Dr. Wenhua Wang. You should be able to find his presentation with details on javascript-xpath
+at his [Meetup event page](http://www.meetup.com/seleniumsanfrancisco/events/101087592/).
 
 Here's a quick guide to targeting elements using `find_element_by_css_selector()`:
 
@@ -476,7 +437,7 @@ is almost never the case. Retrofitting selectors can be a problem, particularly 
 on id or name attributes that cannot be modified.
 
 Fortunately, HTML5 allows for [custom data attributes](http://html5doctor.com/html5-custom-data-attributes/).
-These are attributes beginning with 'data-' that are valid HTML and can be leveraged as locators. For example,
+These are attributes beginning with `data-` that are valid HTML and can be leveraged as locators. For example,
 you might give your otherwise unlocatable element a 'data-selenium' attribute:
 
     :::html
@@ -488,44 +449,94 @@ you might give your otherwise unlocatable element a 'data-selenium' attribute:
     
 Now we can locate the element using the following CSS locator: `[data-selenium=the_link]`.
 
-I have experimented with a script that automatically adds a random 6 hex digit data tag to certain elements in
+I have experimented with a script that automatically adds a random 6 hex digit `data-*` attribute to certain elements in
 all HTML files passed to it.
-The first iteration parsed the HTML using Python's lxml module and added the tags, but I found that it changed the HTML
-in ways I did not expect it to. The second iteration just used regular expressions, but in general that's a
+The first iteration parsed the HTML using Python's lxml module and added the attributes,
+but I found that it changed the HTML unexpectedly, mainly due to bugs in the HTML itself.
+The second iteration just uses regular expressions, but in general that's a
 [bad idea](http://stackoverflow.com/questions/1732348/regex-match-open-tags-except-xhtml-self-contained-tags).
-The other issue is that it cannot tag elements that are dynamically generated by server-side code.
+The other issue is that this method cannot account for elements that are dynamically generated by application code.
 
 A key aspect of testing is having a testable application. It is important to have a strategy for tagging elements during
 development so that they can be located easily and elegantly. Try to document a strategy and get buy-in
 from other developers.
 
-#### Headless testing
+***
+
+### Headless testing
 
 The [`PyVirtualDisplay`](https://pypi.python.org/pypi/PyVirtualDisplay)
 module allows you to wrap your program in `Xvfb` (a virtual X display). This is useful for running tests on your
 CI server (without Sauce), or locally if you don't want a ton of browser windows taking over your display. See
 [this post](http://coreygoldberg.blogspot.com/2011/06/python-headless-selenium-webdriver.html)
-from Corey Goldberg for more details.
+from Corey Goldberg for more details, then add it to your test runner.
 
-#### Cookie injection
+***
+
+### Complex input actions
+
+[Action chains](http://selenium-python.readthedocs.org/en/latest/api.html#module-selenium.webdriver.common.action_chains)
+allow you to do complex input manipulation.
+
+Here's an example of a hover or mouseover method for the abstract test case:
+
+    :::python
+    from selenium.webdriver.common.action_chains import ActionChains
+    
+    def hover(self, element):
+        ActionChains(self.driver).move_to_element(element).perform()
+
+***
+
+### Handling multiple windows
+
+Here's a method you may want to add to the abstract test case
+if your application has popups or multiple windows/tabs.
+
+    :::python
+    import time   
+        
+    def find_window(self, title):
+        start = time.time()
+        while (time.time() - start) <= config['timeout']:
+            for window_handle in self.driver.window_handles:
+                self.driver.switch_to_window(window_handle)
+                if self.driver.title == title:
+                    return True
+            time.sleep(0.5)
+        
+        raise Exception("Could not find window '%s'" % title)
+
+***
+
+### Cookie injection
 
 Cookie injection is easy until you try to do it cross-browser. I highly recommend avoiding it altogether.
 In my case, I had a developer create a secret page for me that allowed me to add a cookie to prevent a
 first-use prompt from appearing. To add the cookie, just navigate to the page using
 `self.get_path('/secret_page')` and click the provided button.
 
+***
+
 #### JavaSript execution
 
 [`execute_script()`](http://selenium-python.readthedocs.org/en/latest/api.html#selenium.webdriver.remote.webdriver.WebDriver.execute_script)
 is useful for interacting with JavaScript and the browser, particularly libraries like jQuery. Lot of cross-browser
-issues can be remedied by using jQuery.
+issues can be remedied by using jQuery. If you abstract driver methods into test case methods, it is very
+easy to try out different interaction strategies. You could probably rebuild the entire selenium API using jQuery and
+`execute_script()`.
 
-#### Debugging
+***
 
-The pdb plugin for nose can be used to drop into pdb on test failures. The DOM and browser remain available in the
-failed state for analysis using the browser or Selenium bindings.
+### Debugging
 
-#### Documentation
+The [pdb plugin](http://nose.readthedocs.org/en/latest/plugins/debug.html) for nose can be used to drop into the Python
+debugger on test failures. The DOM and browser remain available in the failed state for analysis using the
+browser or Selenium bindings.
+
+***
+
+### Documentation
 
 Developers can undestand and fix tests more easily if they are documented.
 Non-developers should be aware of what is being tested and how.
@@ -558,20 +569,37 @@ Here's an example of a documented test:
 
 Now, let's say every single test is documented using this same format. It is relatively easy to write a parser
 using [tokenize](http://docs.python.org/2/library/tokenize.html) that can generate a CSV spreadsheet
-documenting the entire test suite. No more spreadsheet rot.
+documenting the entire test suite. No more spreadsheet rot. See
+[generate_summary.py](https://github.com/danielhochman/basic_selenium_framework/blob/master/basic_selenium_framework/generate_summary.py).
+
+
 Conversely, you could also generate code stubs from a spreadsheet that non-developers use to request new tests.
 
 Note: by default, the first line of a method's docstring are used to name the tests in verbose mode. The
 [ignore-docstring](https://pypi.python.org/pypi/nose-ignore-docstring) plugin allows you to override
 this behavior.
 
-#### Coverage
+***
+
+### Where to put the suite
+
+Early on in my framework, when it was in a state of constant flux, I did not want to put it in the application
+repository. This was a mistake. Tests should live with the code. Using a commit log, you can easily check and
+see what code came in with tests. Tests with code also allows you to easily roll back the clock to an older commit to
+view the behavior of a test that was passing but is now failing.
+
+***
+
+### Coverage
 
 There is always a question of how much to test on the front-end. Despite the power and flexibility of Selenium,
-I think it's important to stay as close to the metal as possible. If Selenium tests are written to provide significant
-coverage, the resulting suite will be brittle. Unit testing should be the primary source of coverage. 
+I think it's important to stay as close to the metal as possible. If Selenium tests are written with the goal of 
+providing significant coverage, the resulting suite will be brittle.
+Unit testing should be the primary source of coverage. 
 
-#### Other potential features
+***
+
+### Other potential features
 
 These are features I have considered and think are valuable,
 but have not had the time or need to implement for my use case.
@@ -585,11 +613,13 @@ and have the framework run the same test or a group of tests repeatedly against 
 Re-run failed tests - Tests fail because of environment wobble. It happens. It would be nice to re-run the tests that
 failed so that testing during build is more robust and less time consuming.
 
-#### Help!
+***
+
+### Help!
 
 Ask a question on the [user group](https://groups.google.com/forum/#!forum/selenium-users),
 in the IRC channel (#selenium on Freenode),
 or attend a [Meetup](http://selenium.meetup.com/).
 
 All of the above resources were invaluable to me when learning about Selenium,
-and developing and debugging my framework.
+as well as developing and debugging my framework.
