@@ -47,7 +47,7 @@ It is the foundation of my testing framework and offers:
 * Built-in multiprocessing support
 * xUnit report output
 
-First, let's install the following dependencies. You can use a
+First, let's install the dependencies below. You can use a
 [virtualenv](http://blog.fruiapps.com/2012/06/An-introductory-tutorial-to-python-virtualenv-and-virtualenvwrapper)
 (preferred), but you can also install the packages system-wide.
 
@@ -267,6 +267,18 @@ Be sure to change the test classes to subclass the new app specific test case an
             
             assert search_term in self.driver.title
             assert search_term in results.text
+
+Let's also write a third test method using our tailored class to test DuckDuckGo's calculator:
+
+    :::python
+    class TestCalculator(DuckDuckGoTestCase):
+
+        def test_calculator(self):
+            self.search('3 + 3')
+
+            assert '= 6' in self.driver.find_element_by_id('zero_click').text
+
+If you're up for it, try refactoring the calculator test using generators to test additional equations.
 
 ***
 
