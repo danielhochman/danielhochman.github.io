@@ -460,7 +460,8 @@ at his <a href="http://www.meetup.com/seleniumsanfrancisco/events/101087592/">Me
 </tr>
 </tbody>
 </table>
-<p>And here's a <a href="http://ejohn.org/blog/xpath-css-selectors/">comparison of CSS and XPath syntax</a> from John Resig.</p>
+<p>And here's a <a href="http://ejohn.org/blog/xpath-css-selectors/">comparison of CSS and XPath syntax</a> from John Resig.
+Targeting sibling or parent elements are two situations where you cannot use CSS and need to use XPath.</p>
 <h5>Retrofitting selectors</h5>
 <p>Ideally, every element in the DOM will have a selector that meets the criteria stated above. Unfortunately, that
 is almost never the case. Retrofitting selectors can be a problem, particularly if functionality of the site depends
@@ -592,7 +593,9 @@ view the behavior of a test that was passing but is now failing.</p>
 <p>There is always a question of how much to test on the front-end. Despite the power and flexibility of Selenium,
 I think it's important to stay as close to the metal as possible. If Selenium tests are written with the goal of 
 providing significant coverage, the resulting suite will be brittle.
-Unit testing should be the primary source of coverage. </p>
+Unit testing should be the primary source of coverage.</p>
+<p>An additional strategy is to appoint someone to decide where tests for newly discovered bugs should be written.
+Closing out a bug should require that a test exists somewhere for the bug.</p>
 <hr />
 <h3>Other potential features</h3>
 <p>These are features I have considered and think are valuable,
