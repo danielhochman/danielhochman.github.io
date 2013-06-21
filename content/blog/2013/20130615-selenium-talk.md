@@ -444,6 +444,7 @@ Attribute | [name=my_name]
 Chained Locators | a.my_class#my_id[name=my_name]
 
 And here's a [comparison of CSS and XPath syntax](http://ejohn.org/blog/xpath-css-selectors/) from John Resig.
+Targeting sibling or parent elements are two situations where you cannot use CSS and need to use XPath.
 
 ##### Retrofitting selectors
 
@@ -610,7 +611,10 @@ view the behavior of a test that was passing but is now failing.
 There is always a question of how much to test on the front-end. Despite the power and flexibility of Selenium,
 I think it's important to stay as close to the metal as possible. If Selenium tests are written with the goal of 
 providing significant coverage, the resulting suite will be brittle.
-Unit testing should be the primary source of coverage. 
+Unit testing should be the primary source of coverage.
+
+An additional strategy is to appoint someone to decide where tests for newly discovered bugs should be written.
+Closing out a bug should require that a test exists somewhere for the bug.
 
 ***
 
