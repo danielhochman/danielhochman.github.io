@@ -34,7 +34,7 @@ It is the foundation of my testing framework and offers:&lt;/p&gt;
 &lt;li&gt;Built-in multiprocessing support&lt;/li&gt;
 &lt;li&gt;xUnit report output&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;First, let's install the following dependencies. You can use a
+&lt;p&gt;First, let's install the dependencies below. You can use a
 &lt;a href="http://blog.fruiapps.com/2012/06/An-introductory-tutorial-to-python-virtualenv-and-virtualenvwrapper"&gt;virtualenv&lt;/a&gt;
 (preferred), but you can also install the packages system-wide.&lt;/p&gt;
 &lt;ul&gt;
@@ -237,6 +237,17 @@ Next we will look at additional features that testing easier and improve integra
 &lt;/pre&gt;&lt;/div&gt;
 
 
+&lt;p&gt;Let's also write a third test method using our tailored class to test DuckDuckGo's calculator:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;TestCalculator&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;DuckDuckGoTestCase&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+
+    &lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;test_calculator&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;search&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;3 + 3&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+        &lt;span class="k"&gt;assert&lt;/span&gt; &lt;span class="s"&gt;&amp;#39;= 6&amp;#39;&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="bp"&gt;self&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;driver&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find_element_by_id&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#39;zero_click&amp;#39;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;text&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;If you're up for it, try refactoring the calculator test using generators to test additional equations.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;h3&gt;Jenkins integration&lt;/h3&gt;
 &lt;p&gt;&lt;a href="http://jenkins-ci.org/"&gt;Jenkins&lt;/a&gt; is a great tool for automating the deployment process.

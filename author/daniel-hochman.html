@@ -81,7 +81,7 @@ It is the foundation of my testing framework and offers:</p>
 <li>Built-in multiprocessing support</li>
 <li>xUnit report output</li>
 </ul>
-<p>First, let's install the following dependencies. You can use a
+<p>First, let's install the dependencies below. You can use a
 <a href="http://blog.fruiapps.com/2012/06/An-introductory-tutorial-to-python-virtualenv-and-virtualenvwrapper">virtualenv</a>
 (preferred), but you can also install the packages system-wide.</p>
 <ul>
@@ -284,6 +284,17 @@ Next we will look at additional features that testing easier and improve integra
 </pre></div>
 
 
+<p>Let's also write a third test method using our tailored class to test DuckDuckGo's calculator:</p>
+<div class="highlight"><pre><span class="k">class</span> <span class="nc">TestCalculator</span><span class="p">(</span><span class="n">DuckDuckGoTestCase</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">test_calculator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">&#39;3 + 3&#39;</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="s">&#39;= 6&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">driver</span><span class="o">.</span><span class="n">find_element_by_id</span><span class="p">(</span><span class="s">&#39;zero_click&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+</pre></div>
+
+
+<p>If you're up for it, try refactoring the calculator test using generators to test additional equations.</p>
 <hr />
 <h3>Jenkins integration</h3>
 <p><a href="http://jenkins-ci.org/">Jenkins</a> is a great tool for automating the deployment process.
