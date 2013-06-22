@@ -501,7 +501,7 @@ debugger on test failures. The DOM and browser remain available in the failed st
 browser or Selenium bindings.&lt;/p&gt;
 &lt;hr /&gt;
 &lt;h3&gt;Documentation&lt;/h3&gt;
-&lt;p&gt;Developers can undestand and fix tests more easily if they are documented.
+&lt;p&gt;Developers can understand and fix tests more easily if they are documented.
 Non-developers should be aware of what is being tested and how.&lt;/p&gt;
 &lt;p&gt;Here's an example of a documented test:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="nn"&gt;uuid&lt;/span&gt;
