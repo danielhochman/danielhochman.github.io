@@ -554,7 +554,7 @@ browser or Selenium bindings.
 
 ### Documentation
 
-Developers can undestand and fix tests more easily if they are documented.
+Developers can understand and fix tests more easily if they are documented.
 Non-developers should be aware of what is being tested and how.
 
 Here's an example of a documented test:
